@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>AR Oven Experience</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <!-- นำเข้า A-Frame และ AR.js -->
+  <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
+  <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
+  <style>
+    /* สไตล์สำหรับปุ่มควบคุม AR บนหน้าจอ */
+    #ar-ui {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 999;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      background: rgba(0, 0, 0, 0.6);
+      padding: 15px;
+      border-radius: 12px;
+      color: white;
+      font-family: sans-serif;
+      text-align: center;
+      width: 90%;
+      max-width: 350px;
+    }
+    .control-group {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 14px;
+    }
+    button {
+      background: #ff6b6b;
+      color: white;
+      border: none;
+      padding: 8px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    button:active {
+      background: #ee5253;
+    }
+    #status-display {
+      font-size: 13px;
+      color: #feca57;
+    }
+  </style>
+</head>
+<body style="margin: 0; overflow: hidden;">
+
+  <!-- UI สำหรับปรับแต่งเตาอบ -->
+  <div id="ar-ui">
+    <div id="status-display">เตาอบพร้อมใช้งาน (ยังไม่เปิดฝา)</div>
+    
+    <div class="control-group">
+      <span>ความร้อน: <span id="temp-val">180</span>°C</span>
+      <div>
+        <button onclick="changeTemp(-10)">-</button>
+        <button onclick="changeTemp(10)">+</button>
+      </div>
+    </div>
+
+    <div class="control-group">
+      <span>เวลา: <span id="time-val">15</span> นาที</span>
+      <div>
+        <button onclick="changeTime(-5)">-</button>
+        <button onclick="changeTime(5)">+</button>
+      </div>
+    </div>
+
+    <button id="lid-btn" onclick="toggleLid()" style="background: #48dbfb; color: #222; width: 100%;">เปิด/ปิด ฝาเตาอบ</button>
+  </div>
+
+  <!-- ฉาก AR (A-Frame Scene) -->
+  <a-scene embedded arjs="sourceType: webcam; debugUIEnabled: false; detectionMode: mono_and_matrix; matrixCodeType: 3x3;">
+    
+    <!-- เมื่อตรวจพบ Marker Hiro -->
+    <a-marker preset="hiro" id="hiro-marker">
+      
+      <!-- กลุ่มวัตถุเตาอบ 3 มิติ -->
+      <a-entity id="oven" position="0 0.5 0" rotation="0 0 0">
+        
+        <!-- ตัวเตาอบ (กล่องหลักสีเงิน/ดำ) -->
+        <a-box position="0 0 0" width="1.2" height="0.8" depth="0.9" color="#2c3e50" roughness="0.3"></a-box>
+        
+        <!-- ช่องใส่ของข้างใน (สีดำมืด) -->
+        <a-box position="0 0 0.05" width="1" height="0.6" depth="0.75" color="#111"></a-box>
+        
+        <!-- แผงควบคุมด้านหน้า -->
+        <a-box position="0 0.32 -0.42" width="1.1" height="0.12" depth="0.05" color="#7f8c8d"></a-box>
+
+        <!-- ฝาเตาอบ (สามารถหมุนเปิด-ปิดได้) -->
+        <a-entity id="oven-lid" position="0 -0.3 0.45" rotation="0 0 0">
+          <!-- บานพับอยู่ด้านล่าง -->
+          <a-box position="0 0.15 0" width="1.05" height="0.3" depth="0.04" color="rgba(255,255,255,0.2)" opacity="0.7"></a-box>
+          <a-box position="0 0.3 0" width="1.05" height="0.04" depth="0.06" color="#bdc3c7"></a-box> <!-- มือจับ -->
+        </a-entity>
+
+      </a-entity>
+    </a-marker>
+
+    <!-- กล้องสำหรับ AR -->
+    <a-entity camera></a-entity>
+  </a-scene>
+
+  <script>
+    // ตัวแปรควบคุมสถานะเตาอบ
+    let temperature = 180;
+    let cookingTime = 15;
+    let isLidOpen = false;
+
+    function updateUI() {
+      document.getElementById('temp-val').innerText = temperature;
+      document.getElementById('time-val').innerText = cookingTime;
+      
+      let statusText = `ความร้อน ${temperature}°C | เวลา ${cookingTime} นาที`;
+      statusText += isLidOpen ? " (เปิดฝาอยู่)" : " (ปิดฝาอยู่)";
+      document.getElementById('status-display').innerText = statusText;
+    }
+
+    function changeTemp(amount) {
+      temperature = Math.max(0, temperature + amount);
+      updateUI();
+    }
+
+    function changeTime(amount) {
+      cookingTime = Math.max(1, cookingTime + amount);
+      updateUI();
+    }
+
+    function toggleLid() {
+      isLidOpen = !isLidOpen;
+      const lidEl = document.getElementById('oven-lid');
+      
+      if (isLidOpen) {
+        // หมุนฝาเตาอบเปิดขึ้น (แกน X ติดลบ)
+        lidEl.setAttribute('animation', 'property: rotation; to: -70 0 0; dur: 500; easing: easeOutQuad');
+      } else {
+        // ปิดฝาเตาอบกลับตำแหน่งเดิม
+        lidEl.setAttribute('animation', 'property: rotation; to: 0 0 0; dur: 500; easing: easeOutQuad');
+      }
+      updateUI();
+    }
+  </script>
+
+</body>
+</html>
