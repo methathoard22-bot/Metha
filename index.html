@@ -1,178 +1,367 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>AR เตาอบ - Hiro Marker</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>AR Space Shuttle - Hiro Marker</title>
+
+  <!-- A-Frame -->
   <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
-  <script src="https://raw.githack.com/AR-js-org/AR.js/3.4.7/aframe/build/aframe-ar.js"></script>
+  <!-- AR.js -->
+  <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js@3.4.5/aframe/build/aframe-ar.js"></script>
+
   <style>
     * { box-sizing: border-box; }
-    html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; font-family: system-ui, sans-serif; background: #111; }
-    a-scene { position: fixed; inset: 0; }
-    .panel {
-      position: fixed; z-index: 10; left: 12px; right: 12px; bottom: 12px;
-      padding: 14px; border-radius: 18px; color: #fff;
-      background: rgba(20, 25, 33, .91); backdrop-filter: blur(8px);
-      box-shadow: 0 8px 28px rgba(0,0,0,.35); max-width: 560px; margin: auto;
+    body {
+      margin: 0;
+      overflow: hidden;
+      font-family: Arial, "Noto Sans Thai", sans-serif;
+      background: #000;
     }
-    .heading { display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom: 10px; }
-    h1 { font-size: 18px; margin: 0; }
-    #status { font-size: 12px; color: #ffd166; }
-    .control { margin: 10px 0; }
-    .line { display:flex; justify-content:space-between; align-items:center; margin-bottom:5px; font-size:14px; }
-    input[type=range] { width:100%; accent-color:#ff9f1c; }
-    .buttons { display:grid; grid-template-columns:1fr 1fr; gap:9px; margin-top:12px; }
-    button { border:0; border-radius:12px; padding:12px 10px; color:#171717; font-weight:700; font-size:14px; background:#ffd166; cursor:pointer; }
-    button.secondary { background:#d9e2ec; }
-    .hint { font-size:11px; color:#c4ccd5; margin-top:9px; line-height:1.45; }
-    @media (min-width:600px) { .panel { left:auto; right:18px; bottom:18px; width:340px; } }
+
+    #ui {
+      position: fixed;
+      z-index: 9999;
+      left: 50%;
+      bottom: 18px;
+      transform: translateX(-50%);
+      width: min(94vw, 520px);
+      padding: 14px;
+      border-radius: 20px;
+      background: rgba(5, 12, 28, .88);
+      border: 1px solid rgba(100, 180, 255, .45);
+      box-shadow: 0 8px 30px rgba(0,0,0,.45);
+      color: white;
+      text-align: center;
+      backdrop-filter: blur(8px);
+    }
+
+    #title {
+      font-size: 21px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    #status {
+      font-size: 15px;
+      color: #b9dfff;
+      min-height: 22px;
+      margin-bottom: 10px;
+    }
+
+    .row {
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    button, select {
+      border: 0;
+      border-radius: 12px;
+      padding: 11px 15px;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    #startBtn {
+      background: #18d66b;
+      color: #04160b;
+    }
+
+    #resetBtn {
+      background: #ff4d5d;
+      color: white;
+    }
+
+    select {
+      background: white;
+      color: #111;
+    }
+
+    button:disabled {
+      opacity: .45;
+      cursor: not-allowed;
+    }
+
+    #countdown {
+      font-size: 54px;
+      font-weight: 900;
+      line-height: 1;
+      margin: 4px 0 8px;
+      color: #fff;
+      text-shadow: 0 0 18px #35aaff;
+      min-height: 58px;
+    }
+
+    #hint {
+      position: fixed;
+      z-index: 9998;
+      top: 14px;
+      left: 50%;
+      transform: translateX(-50%);
+      color: white;
+      background: rgba(0,0,0,.6);
+      padding: 8px 14px;
+      border-radius: 999px;
+      font-size: 14px;
+      pointer-events: none;
+      white-space: nowrap;
+    }
   </style>
 </head>
+
 <body>
-  <a-scene embedded renderer="colorManagement: true; physicallyCorrectLights: true"
-           vr-mode-ui="enabled: false"
-           arjs="sourceType: webcam; debugUIEnabled: false; trackingMethod: best;">
-    <a-assets>
-      <a-mixin id="metal" material="color: #687582; metalness: .72; roughness: .28"></a-mixin>
-    </a-assets>
+  <div id="hint">📷 ส่องกล้องไปที่ Hiro Marker</div>
 
-    <!-- เปลี่ยนโมเดลทั้งหมดให้อยู่ภายใน marker Hiro -->
-    <a-marker preset="hiro" id="hiroMarker">
-      <a-entity id="oven" position="0 0 0" scale="1 1 1">
-        <!-- ตัวเตาอบ -->
-        <a-box position="0 0.72 0" width="1.45" height="1.05" depth="0.92"
-               material="color:#303944; metalness:.55; roughness:.35"></a-box>
-        <!-- ขอบหน้าตู้ -->
-        <a-box position="0 0.72 0.475" width="1.28" height="0.82" depth="0.045"
-               material="color:#171d25; metalness:.25; roughness:.3"></a-box>
-        <!-- ช่องกระจกประตู -->
-        <a-box position="0 0.75 0.505" width="1.08" height="0.59" depth="0.025"
-               material="color:#172c3d; opacity:.78; transparent:true; metalness:.35; roughness:.15"></a-box>
-        <!-- ชั้นภายใน -->
-        <a-box position="0 0.62 0.35" width=".9" height=".025" depth=".18"
-               material="color:#aab4bd; metalness:.8; roughness:.3"></a-box>
-        <!-- แผงควบคุมด้านบน -->
-        <a-box position="0 1.32 0.48" width="1.3" height=".19" depth=".08"
-               material="color:#151a20; metalness:.25"></a-box>
-        <!-- ปุ่มหมุนจำลอง -->
-        <a-cylinder position="-.42 1.32 .54" rotation="90 0 0" radius=".065" height=".045"
-                    material="color:#e5a83b; metalness:.4"></a-cylinder>
-        <a-cylinder position=".42 1.32 .54" rotation="90 0 0" radius=".065" height=".045"
-                    material="color:#e5a83b; metalness:.4"></a-cylinder>
-        <!-- มือจับประตู -->
-        <a-box position="0 1.05 .56" width=".48" height=".045" depth=".055"
-               material="color:#d7dde2; metalness:.85; roughness:.2"></a-box>
-        <!-- ขาตั้ง -->
-        <a-box position="-.52 .12 -.28" width=".13" height=".24" depth=".13" material="color:#202832"></a-box>
-        <a-box position=".52 .12 -.28" width=".13" height=".24" depth=".13" material="color:#202832"></a-box>
-        <a-box position="-.52 .12 .28" width=".13" height=".24" depth=".13" material="color:#202832"></a-box>
-        <a-box position=".52 .12 .28" width=".13" height=".24" depth=".13" material="color:#202832"></a-box>
+  <div id="ui">
+    <div id="title">🚀 AR SPACE SHUTTLE</div>
+    <div id="status">กำลังรอการตรวจพบ Hiro Marker...</div>
+    <div id="countdown"></div>
 
-        <!-- ประตูหมุนเปิดลง โดยหมุนรอบบานพับด้านล่าง -->
-        <a-entity id="doorPivot" position="0 .20 .49">
-          <a-box id="ovenDoor" position="0 .52 .035" width="1.25" height=".78" depth=".07"
-                 material="color:#263746; opacity:.88; transparent:true; metalness:.4; roughness:.18"></a-box>
-          <a-box position="0 .91 .075" width=".5" height=".045" depth=".06"
-                 material="color:#d7dde2; metalness:.85"></a-box>
+    <div class="row">
+      <label for="timeSelect">เวลานับถอยหลัง</label>
+      <select id="timeSelect">
+        <option value="1">1 วินาที</option>
+        <option value="2">2 วินาที</option>
+        <option value="3" selected>3 วินาที</option>
+        <option value="4">4 วินาที</option>
+        <option value="5">5 วินาที</option>
+        <option value="6">6 วินาที</option>
+        <option value="7">7 วินาที</option>
+        <option value="8">8 วินาที</option>
+        <option value="9">9 วินาที</option>
+        <option value="10">10 วินาที</option>
+      </select>
+    </div>
+
+    <div class="row" style="margin-top:9px">
+      <button id="startBtn" disabled>🚀 Start / ปล่อยกระสวย</button>
+      <button id="resetBtn">↻ Reset</button>
+    </div>
+  </div>
+
+  <a-scene
+    embedded
+    vr-mode-ui="enabled: false"
+    renderer="antialias: true; alpha: true"
+    arjs="sourceType: webcam; debugUIEnabled: false; detectionMode: mono; matrixCodeType: 3x3;"
+    gesture-detector>
+
+    <a-marker
+      id="hiroMarker"
+      preset="hiro"
+      emitevents="true"
+      smooth="true"
+      smoothCount="10"
+      smoothTolerance="0.01"
+      smoothThreshold="5">
+
+      <!-- กระสวยอวกาศ -->
+      <a-entity id="shuttle" position="0 0.35 0" rotation="0 0 0" scale="0.7 0.7 0.7">
+
+        <!-- ลำตัว -->
+        <a-cylinder
+          radius="0.32"
+          height="1.25"
+          rotation="90 0 0"
+          color="#e9eef5"
+          metalness="0.7"
+          roughness="0.28">
+        </a-cylinder>
+
+        <!-- จมูกกระสวย -->
+        <a-cone
+          radius-bottom="0.32"
+          radius-top="0.04"
+          height="0.48"
+          rotation="0 0 0"
+          position="0 0.86 0"
+          color="#f4f6fa"
+          metalness="0.6">
+        </a-cone>
+
+        <!-- หน้าต่างห้องนักบิน -->
+        <a-sphere
+          radius="0.16"
+          position="0 0.69 -0.18"
+          scale="1 0.55 0.35"
+          color="#162d4a"
+          metalness="0.8"
+          roughness="0.18">
+        </a-sphere>
+
+        <!-- ปีกซ้าย/ขวา -->
+        <a-box position="-0.45 0.05 0" width="0.85" height="0.08" depth="0.55"
+               rotation="0 0 -13" color="#d6dce5"></a-box>
+        <a-box position="0.45 0.05 0" width="0.85" height="0.08" depth="0.55"
+               rotation="0 0 13" color="#d6dce5"></a-box>
+
+        <!-- หาง -->
+        <a-box position="0 -0.42 0" width="0.08" height="0.48" depth="0.55"
+               rotation="0 0 0" color="#c8ced8"></a-box>
+
+        <!-- เครื่องยนต์ -->
+        <a-cylinder radius="0.10" height="0.18" rotation="90 0 0"
+                     position="-0.15 -0.68 0" color="#444b55"></a-cylinder>
+        <a-cylinder radius="0.10" height="0.18" rotation="90 0 0"
+                     position="0 -0.68 0" color="#444b55"></a-cylinder>
+        <a-cylinder radius="0.10" height="0.18" rotation="90 0 0"
+                     position="0.15 -0.68 0" color="#444b55"></a-cylinder>
+
+        <!-- เปลวไฟ -->
+        <a-entity id="flames" visible="false" position="0 -0.82 0">
+          <a-cone radius-bottom="0.28" radius-top="0.04" height="0.75"
+                  rotation="180 0 0" color="#ffb300"
+                  material="shader: flat; opacity: .9"></a-cone>
+          <a-cone radius-bottom="0.15" radius-top="0.02" height="0.55"
+                  rotation="180 0 0" color="#fff5a3"
+                  position="0 0.02 0"></a-cone>
         </a-entity>
-        <a-text value="SMART OVEN" position="0 1.48 .50" align="center" color="#ffffff" width="2.7"></a-text>
-        <!-- แสงไฟด้านใน -->
-        <a-box position="-.48 .77 .39" width=".035" height=".035" depth=".025"
-               material="color:#ffcf70; emissive:#ff9f1c; emissiveIntensity:1.5"></a-box>
+
+        <!-- ควัน -->
+        <a-entity id="smoke" visible="false">
+          <a-sphere radius=".25" position="-.25 -1.05 0" color="#ddd" opacity=".45"></a-sphere>
+          <a-sphere radius=".30" position=".20 -1.18 0" color="#eee" opacity=".38"></a-sphere>
+          <a-sphere radius=".22" position="0 -1.38 0" color="#fff" opacity=".30"></a-sphere>
+        </a-entity>
       </a-entity>
+
+      <!-- ฐานปล่อย -->
+      <a-cylinder id="launchPad" radius=".62" height=".08"
+                   position="0 -.02 0" color="#27364a"
+                   metalness=".5"></a-cylinder>
+      <a-ring radius-inner=".47" radius-outer=".56"
+              rotation="-90 0 0" position="0 .03 0"
+              color="#25a7ff"></a-ring>
     </a-marker>
+
     <a-entity camera></a-entity>
   </a-scene>
 
-  <section class="panel" aria-label="แผงควบคุมเตาอบ">
-    <div class="heading">
-      <h1>🍞 แผงควบคุมเตาอบ AR</h1>
-      <span id="status">กำลังค้นหา Hiro...</span>
-    </div>
-    <div class="control">
-      <div class="line"><label for="temperature">อุณหภูมิ</label><strong><span id="tempValue">180</span> °C</strong></div>
-      <input id="temperature" type="range" min="50" max="250" step="5" value="180">
-    </div>
-    <div class="control">
-      <div class="line"><label for="minutes">ตั้งเวลา</label><strong><span id="timeValue">20</span> นาที</strong></div>
-      <input id="minutes" type="range" min="1" max="120" step="1" value="20">
-    </div>
-    <div class="buttons">
-      <button id="doorButton">เปิดฝาเตาอบ</button>
-      <button id="powerButton" class="secondary">เริ่มทำงาน</button>
-    </div>
-    <div class="hint">วางภาพ Marker “Hiro” ไว้หน้ากล้องเพื่อแสดงเตาอบ 3 มิติ • ต้องอนุญาตให้เว็บไซต์ใช้กล้อง</div>
-  </section>
-
   <script>
     const marker = document.querySelector('#hiroMarker');
-    const statusText = document.querySelector('#status');
-    const temp = document.querySelector('#temperature');
-    const minutes = document.querySelector('#minutes');
-    const tempValue = document.querySelector('#tempValue');
-    const timeValue = document.querySelector('#timeValue');
-    const doorPivot = document.querySelector('#doorPivot');
-    const doorButton = document.querySelector('#doorButton');
-    const powerButton = document.querySelector('#powerButton');
+    const shuttle = document.querySelector('#shuttle');
+    const flames = document.querySelector('#flames');
+    const smoke = document.querySelector('#smoke');
+    const startBtn = document.querySelector('#startBtn');
+    const resetBtn = document.querySelector('#resetBtn');
+    const timeSelect = document.querySelector('#timeSelect');
+    const statusEl = document.querySelector('#status');
+    const countdownEl = document.querySelector('#countdown');
 
-    let doorOpen = false;
+    let markerFound = false;
     let running = false;
-    let timerId = null;
-    let remaining = Number(minutes.value) * 60;
+    let countdownTimer = null;
+    let launchAnimation = null;
 
-    marker.addEventListener('markerFound', () => statusText.textContent = 'พบ Hiro แล้ว ✓');
-    marker.addEventListener('markerLost', () => statusText.textContent = 'ไม่พบ Marker Hiro');
+    const homePosition = { x: 0, y: 0.35, z: 0 };
 
-    temp.addEventListener('input', () => tempValue.textContent = temp.value);
-    minutes.addEventListener('input', () => {
-      timeValue.textContent = minutes.value;
-      if (!running) remaining = Number(minutes.value) * 60;
-    });
-
-    doorButton.addEventListener('click', () => {
-      doorOpen = !doorOpen;
-      doorPivot.setAttribute('animation', {
-        property: 'rotation.x',
-        to: doorOpen ? -85 : 0,
-        dur: 500,
-        easing: 'easeInOutSine'
-      });
-      doorButton.textContent = doorOpen ? 'ปิดฝาเตาอบ' : 'เปิดฝาเตาอบ';
-    });
-
-    function stopOven() {
-      running = false;
-      clearInterval(timerId);
-      timerId = null;
-      powerButton.textContent = 'เริ่มทำงาน';
-      powerButton.classList.add('secondary');
+    function setStatus(text) {
+      statusEl.textContent = text;
     }
 
-    powerButton.addEventListener('click', () => {
-      if (running) {
-        stopOven();
-        return;
+    function resetShuttle() {
+      if (countdownTimer) clearInterval(countdownTimer);
+      countdownTimer = null;
+
+      if (launchAnimation) {
+        shuttle.removeAttribute('animation__launch');
+        launchAnimation = null;
       }
-      if (doorOpen) {
-        alert('กรุณาปิดฝาเตาอบก่อนเริ่มทำงาน');
-        return;
+
+      running = false;
+      countdownEl.textContent = '';
+      shuttle.setAttribute('position', `${homePosition.x} ${homePosition.y} ${homePosition.z}`);
+      shuttle.setAttribute('rotation', '0 0 0');
+      flames.setAttribute('visible', 'false');
+      smoke.setAttribute('visible', 'false');
+
+      startBtn.disabled = !markerFound;
+
+      if (markerFound) {
+        setStatus('พร้อมปล่อยกระสวย 🚀');
+      } else {
+        setStatus('กำลังรอการตรวจพบ Hiro Marker...');
       }
-      remaining = Number(minutes.value) * 60;
+    }
+
+    function launchShuttle() {
       running = true;
-      powerButton.textContent = 'หยุดการทำงาน';
-      powerButton.classList.remove('secondary');
-      timerId = setInterval(() => {
+      flames.setAttribute('visible', 'true');
+      smoke.setAttribute('visible', 'true');
+      setStatus('🚀 LIFTOFF! กระสวยกำลังทะยานขึ้น!');
+
+      // กระสวยพุ่งขึ้นอย่างรวดเร็ว
+      shuttle.setAttribute('animation__launch', {
+        property: 'position',
+        to: '0 7 0',
+        dur: 4200,
+        easing: 'easeInQuad'
+      });
+
+      // หมุนเล็กน้อยระหว่างทะยาน
+      shuttle.setAttribute('animation__rotate', {
+        property: 'rotation',
+        to: '0 8 0',
+        dur: 4200,
+        easing: 'easeInOutSine'
+      });
+
+      setTimeout(() => {
+        if (running) {
+          setStatus('🌌 กระสวยขึ้นสู่อวกาศแล้ว!');
+          flames.setAttribute('visible', 'false');
+        }
+      }, 4300);
+    }
+
+    function startCountdown() {
+      if (!markerFound || running) return;
+
+      const seconds = Number(timeSelect.value);
+      let remaining = seconds;
+
+      countdownEl.textContent = remaining;
+      setStatus('⏱️ เตรียมปล่อยกระสวย...');
+
+      countdownTimer = setInterval(() => {
         remaining--;
-        const mins = Math.floor(remaining / 60);
-        const secs = remaining % 60;
-        powerButton.textContent = `หยุด (${mins}:${String(secs).padStart(2, '0')})`;
-        if (remaining <= 0) {
-          stopOven();
-          alert('หมดเวลาอบแล้ว!');
+
+        if (remaining > 0) {
+          countdownEl.textContent = remaining;
+        } else {
+          clearInterval(countdownTimer);
+          countdownTimer = null;
+          countdownEl.textContent = '🚀';
+          launchShuttle();
         }
       }, 1000);
+    }
+
+    startBtn.addEventListener('click', startCountdown);
+    resetBtn.addEventListener('click', resetShuttle);
+
+    marker.addEventListener('markerFound', () => {
+      markerFound = true;
+      if (!running) {
+        startBtn.disabled = false;
+        setStatus('✅ พบ Hiro Marker แล้ว — พร้อมปล่อยกระสวย!');
+      }
     });
+
+    marker.addEventListener('markerLost', () => {
+      markerFound = false;
+      if (!running) {
+        startBtn.disabled = true;
+        setStatus('📷 ไม่พบ Hiro Marker — โปรดส่องกล้องไปที่ Marker');
+      }
+    });
+
+    // เริ่มต้น
+    resetShuttle();
   </script>
 </body>
 </html>
